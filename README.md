@@ -14,5 +14,8 @@ The config is created automatically in the same place where the dll is located
   "DefaultMap": "de_dust2"
 }
 ```
+> [!NOTE]
+> For Workshop maps needs prefix `ws:`
+
 # Commands
 `css_acm_reload` - Reload config AutoChangeMap
