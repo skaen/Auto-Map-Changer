@@ -11,9 +11,8 @@ namespace AutoMapChanger;
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.2"; 
+    public override string ModuleVersion => "1.0.3"; 
     public override string ModuleAuthor => "skaen";
-    public override string ModuleDescription => "Changes the map to default when not active";
 
     private static Config _config = null!;
     private static Timer myTimer = null!;
@@ -21,21 +20,33 @@ public class AutoMapChanger : BasePlugin
     public override void Load(bool hotReload)
     {
         _config = LoadConfig();
-
         Log($"{ModuleName} [{ModuleVersion}] loaded success");
+        SetupListener();
+    }
+
+    public void SetupListener()
+    {
 
         RegisterListener<Listeners.OnMapStart>(mapName => {
             Log($"[ {ModuleName} ] Map {mapName} has started!");
             StartTimer();
         });
-        RegisterListener<Listeners.OnMapEnd>(() => {
-            Log($"[ {ModuleName} ] Map has ended.");
+        RegisterListener<Listeners.OnClientPutInServer>(playerSlot => {
+            if(myTimer != null)
+                myTimer.Kill();
         });
-
+        RegisterListener<Listeners.OnClientDisconnectPost>(playerSlot => {
+            var playerEntities = Utilities.FindAllEntitiesByDesignerName<CCSPlayerController>("cs_player_controller");
+            if (playerEntities.Count<CCSPlayerController>() == 0)
+            {
+                StartTimer();
+            }
+        });
     }
+   
     public void StartTimer()
     {
-        Timer myTimer = AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT);
+        myTimer = AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT);
     }
 
     private void MapChange()
@@ -50,7 +61,7 @@ public class AutoMapChanger : BasePlugin
     }
 
     [ConsoleCommand("css_acm_reload", "Reload config AutoChangeMap")]
-    public void ReloadACMConfig(CCSPlayerController? controller, CommandInfo command)
+    public void ReloadAdvertConfig(CCSPlayerController? controller, CommandInfo command)
     {
         if (controller != null)
         {
@@ -60,12 +71,9 @@ public class AutoMapChanger : BasePlugin
         _config = LoadConfig();
 
         if (myTimer != null)
-        {
             myTimer.Kill();
-        }
 
         StartTimer();
-        Log($"{ModuleName} [{ModuleVersion}] loaded config success");
     }
 
     private Config LoadConfig()
