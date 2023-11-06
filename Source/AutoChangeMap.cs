@@ -3,6 +3,7 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Timers;
 using Timer = CounterStrikeSharp.API.Modules.Timers.Timer;
 
@@ -11,7 +12,7 @@ namespace AutoMapChanger;
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.3"; 
+    public override string ModuleVersion => "1.0.4"; 
     public override string ModuleAuthor => "skaen";
 
     private static Config _config = null!;
@@ -56,12 +57,16 @@ public class AutoMapChanger : BasePlugin
         var playerEntities = Utilities.FindAllEntitiesByDesignerName<CCSPlayerController>("cs_player_controller");
         if (playerEntities.Count<CCSPlayerController>() > 0) return;
 
-        Server.ExecuteCommand($"changelevel \"{_config.DefaultMap}\"");
-        Log($"[ {ModuleName} ] Change level on map \"{_config.DefaultMap}\"");
+        if (IsWorkshopMap(_config.DefaultMap))
+            Server.ExecuteCommand($"ds_workshop_changelevel {_config.DefaultMap}");
+        else if (Server.IsMapValid(_config.DefaultMap))
+            Server.ExecuteCommand($"map {_config.DefaultMap}");
+        else
+            Log($"[ {ModuleName} ] Level \"{_config.DefaultMap}\" is invalid");
     }
 
     [ConsoleCommand("css_acm_reload", "Reload config AutoChangeMap")]
-    public void ReloadAdvertConfig(CCSPlayerController? controller, CommandInfo command)
+    public void ReloadACMConfig(CCSPlayerController? controller, CommandInfo command)
     {
         if (controller != null)
         {
@@ -101,6 +106,13 @@ public class AutoMapChanger : BasePlugin
         Log($"[ {ModuleName} ] The configuration was successfully saved to a file: " + configPath);
 
         return config;
+    }
+    private bool IsWorkshopMap(string selectMap)
+    {
+        var mapsPath = Path.Combine(ModuleDirectory, "maps.txt");
+        var mapList = File.ReadAllLines(mapsPath);
+
+        return mapList.Any(map => map.Trim() == "ws:" + selectMap);
     }
     public void Log(string message)
     {
