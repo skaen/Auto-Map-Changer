@@ -12,7 +12,7 @@ namespace AutoMapChanger;
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.4"; 
+    public override string ModuleVersion => "1.0.5"; 
     public override string ModuleAuthor => "skaen";
 
     private static Config _config = null!;
@@ -109,10 +109,7 @@ public class AutoMapChanger : BasePlugin
     }
     private bool IsWorkshopMap(string selectMap)
     {
-        var mapsPath = Path.Combine(ModuleDirectory, "maps.txt");
-        var mapList = File.ReadAllLines(mapsPath);
-
-        return mapList.Any(map => map.Trim() == "ws:" + selectMap);
+        return selectMap.Trim() == "ws:" + selectMap;
     }
     public void Log(string message)
     {
