@@ -32,7 +32,7 @@ public class AutoMapChanger : BasePlugin
             myTimer?.Kill();
         });
         RegisterListener<Listeners.OnClientDisconnectPost>(playerSlot => {
-            if (Utilities.GetPlayers().Count > 0)
+            if (Utilities.GetPlayers().Count == 0)
                 StartTimer();
         });
     }
