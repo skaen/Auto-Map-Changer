@@ -81,20 +81,18 @@ public class AutoMapChanger : BasePlugin
     }
 
     
-    private Config CreateConfig(string configPath)
+    private void CreateConfig(string configPath)
     {
-        var config = new Config
+        _config = new Config
         {
             Delay = 180.0f,
             DefaultMap = "de_dust2",
         };
 
         File.WriteAllText(configPath,
-            JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true }));
+            JsonSerializer.Serialize(_config, new JsonSerializerOptions { WriteIndented = true }));
 
         Log($"[ {ModuleName} ] The configuration was successfully saved to a file: " + configPath);
-
-        return config;
     }
 
     public void Log(string message)

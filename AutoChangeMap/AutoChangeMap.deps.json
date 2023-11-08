@@ -8,7 +8,7 @@
     ".NETCoreApp,Version=v7.0": {
       "AutoChangeMap/1.0.0": {
         "dependencies": {
-          "CounterStrikeSharp.API": "1.0.0.0",
+          "CounterStrikeSharp.API": "1.0.5.0",
           "McMaster.NETCore.Plugins": "1.4.0.0",
           "Microsoft.DotNet.PlatformAbstractions": "3.1.6.0",
           "Microsoft.Extensions.DependencyModel": "5.0.0.0"
@@ -17,11 +17,11 @@
           "AutoChangeMap.dll": {}
         }
       },
-      "CounterStrikeSharp.API/1.0.0.0": {
+      "CounterStrikeSharp.API/1.0.5.0": {
         "runtime": {
           "CounterStrikeSharp.API.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+            "assemblyVersion": "1.0.5.0",
+            "fileVersion": "1.0.5.0"
           }
         }
       },
@@ -57,7 +57,7 @@
       "serviceable": false,
       "sha512": ""
     },
-    "CounterStrikeSharp.API/1.0.0.0": {
+    "CounterStrikeSharp.API/1.0.5.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""
