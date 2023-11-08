@@ -12,7 +12,7 @@ namespace AutoMapChanger;
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.5"; 
+    public override string ModuleVersion => "1.0.6"; 
     public override string ModuleAuthor => "skaen";
 
     private static Config _config = null!;
@@ -20,78 +20,67 @@ public class AutoMapChanger : BasePlugin
 
     public override void Load(bool hotReload)
     {
-        _config = LoadConfig();
         Log($"{ModuleName} [{ModuleVersion}] loaded success");
-        SetupListener();
-    }
 
-    public void SetupListener()
-    {
+        LoadConfig();
 
         RegisterListener<Listeners.OnMapStart>(mapName => {
             Log($"[ {ModuleName} ] Map {mapName} has started!");
             StartTimer();
         });
         RegisterListener<Listeners.OnClientPutInServer>(playerSlot => {
-            if(myTimer != null)
-                myTimer.Kill();
+            myTimer?.Kill();
         });
         RegisterListener<Listeners.OnClientDisconnectPost>(playerSlot => {
-            var playerEntities = Utilities.FindAllEntitiesByDesignerName<CCSPlayerController>("cs_player_controller");
-            if (playerEntities.Count<CCSPlayerController>() == 0)
-            {
+            if (Utilities.GetPlayers().Count > 0)
                 StartTimer();
-            }
         });
     }
    
     public void StartTimer()
     {
-        myTimer = AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT);
+        myTimer ??= AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT);
     }
 
     private void MapChange()
     {
-        if (NativeAPI.GetMapName() == _config.DefaultMap) return;
+        var DefaultMap = _config.DefaultMap.IndexOf("ws:") != -1 ? _config.DefaultMap[3..] : _config.DefaultMap;
 
-        var playerEntities = Utilities.FindAllEntitiesByDesignerName<CCSPlayerController>("cs_player_controller");
-        if (playerEntities.Count<CCSPlayerController>() > 0) return;
+        if (NativeAPI.GetMapName() == DefaultMap) return;
+        if (Utilities.GetPlayers().Count > 0) return;
 
-        if (IsWorkshopMap(_config.DefaultMap))
-            Server.ExecuteCommand($"ds_workshop_changelevel {_config.DefaultMap}");
-        else if (Server.IsMapValid(_config.DefaultMap))
-            Server.ExecuteCommand($"map {_config.DefaultMap}");
+
+        if (_config.DefaultMap.IndexOf("ws:") != -1)
+            Server.ExecuteCommand($"ds_workshop_changelevel {DefaultMap}");
         else
-            Log($"[ {ModuleName} ] Level \"{_config.DefaultMap}\" is invalid");
+            Server.ExecuteCommand($"map {DefaultMap}");
+
+        Log($"[ {ModuleName} ] Change level on map \"{DefaultMap}\"");
     }
 
     [ConsoleCommand("css_acm_reload", "Reload config AutoChangeMap")]
     public void ReloadACMConfig(CCSPlayerController? controller, CommandInfo command)
     {
-        if (controller != null)
-        {
-            return;
-        }
+        if (controller != null) return;
 
-        _config = LoadConfig();
-
-        if (myTimer != null)
-            myTimer.Kill();
-
+        LoadConfig();
+        myTimer?.Kill();
         StartTimer();
+
+        Log($"[ {ModuleName} ] loaded config success");
     }
 
-    private Config LoadConfig()
+    private void LoadConfig()
     {
         var configPath = Path.Combine(ModuleDirectory, "autochangemap.json");
 
-        if (!File.Exists(configPath)) return CreateConfig(configPath);
-
-        var config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath))!;
-
-        return config;
+        if (!File.Exists(configPath)) 
+            CreateConfig(configPath);
+        else
+            _config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath))!;
     }
 
+    
     private Config CreateConfig(string configPath)
     {
         var config = new Config
@@ -107,10 +96,7 @@ public class AutoMapChanger : BasePlugin
 
         return config;
     }
-    private bool IsWorkshopMap(string selectMap)
-    {
-        return selectMap.Trim() == "ws:" + selectMap;
-    }
+
     public void Log(string message)
     {
         Console.BackgroundColor = ConsoleColor.DarkGray;
