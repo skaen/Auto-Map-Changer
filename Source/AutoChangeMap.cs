@@ -3,20 +3,17 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Commands;
-using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Timers;
-using Timer = CounterStrikeSharp.API.Modules.Timers.Timer;
 
 namespace AutoMapChanger;
 
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.6"; 
+    public override string ModuleVersion => "1.0.7"; 
     public override string ModuleAuthor => "skaen";
 
     private static Config _config = null!;
-    private static Timer myTimer = null!;
 
     public override void Load(bool hotReload)
     {
@@ -26,36 +23,23 @@ public class AutoMapChanger : BasePlugin
 
         RegisterListener<Listeners.OnMapStart>(mapName => {
             Log($"[ {ModuleName} ] Map {mapName} has started!");
-            StartTimer();
-        });
-        RegisterListener<Listeners.OnClientPutInServer>(playerSlot => {
-            myTimer?.Kill();
-        });
-        RegisterListener<Listeners.OnClientDisconnectPost>(playerSlot => {
-            if (Utilities.GetPlayers().Count == 0)
-                StartTimer();
+            if (mapName != _config!.DefaultMap && mapName != _config.DefaultMap[3..])
+            {
+                AddTimer((float)_config.Delay, MapChange, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
+            }
         });
     }
-   
-    public void StartTimer()
+
+    public void MapChange()
     {
-        myTimer ??= AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT);
-    }
-
-    private void MapChange()
-    {
-        var DefaultMap = _config.DefaultMap.IndexOf("ws:") != -1 ? _config.DefaultMap[3..] : _config.DefaultMap;
-
-        if (NativeAPI.GetMapName() == DefaultMap) return;
-        if (Utilities.GetPlayers().Count > 0) return;
-
+        if (Utilities.GetPlayers().Count(p => p.IsBot == false) > 0) return;
 
         if (_config.DefaultMap.IndexOf("ws:") != -1)
-            Server.ExecuteCommand($"ds_workshop_changelevel {DefaultMap}");
+            Server.ExecuteCommand($"ds_workshop_changelevel {_config.DefaultMap[3..]}");
         else
-            Server.ExecuteCommand($"map {DefaultMap}");
+            Server.ExecuteCommand($"map {_config!.DefaultMap}");
 
-        Log($"[ {ModuleName} ] Change level on map \"{DefaultMap}\"");
+        Log($"[ {ModuleName} ] Change level on map \"{_config.DefaultMap}\"");
     }
 
     [ConsoleCommand("css_acm_reload", "Reload config AutoChangeMap")]
@@ -64,9 +48,6 @@ public class AutoMapChanger : BasePlugin
         if (controller != null) return;
 
         LoadConfig();
-        myTimer?.Kill();
-        StartTimer();
-
         Log($"[ {ModuleName} ] loaded config success");
     }
 
