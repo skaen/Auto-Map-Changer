@@ -4,13 +4,13 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Timers;
-
+using Microsoft.Extensions.Logging;
 namespace AutoMapChanger;
 
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.7"; 
+    public override string ModuleVersion => "1.0.8"; 
     public override string ModuleAuthor => "skaen";
 
     private static Config _config = null!;
@@ -22,24 +22,36 @@ public class AutoMapChanger : BasePlugin
         LoadConfig();
 
         RegisterListener<Listeners.OnMapStart>(mapName => {
-            Log($"[ {ModuleName} ] Map {mapName} has started!");
-            if (mapName != _config!.DefaultMap && mapName != _config.DefaultMap[3..])
+            if (_config.Debug)
+                Logger.LogInformation($"[ {ModuleName} ] Map {mapName} has started!");
+
+            if (mapName != _config.DefaultMap && mapName != _config.DefaultMap[3..])
             {
-                AddTimer((float)_config.Delay, MapChange, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
+                if (_config.Debug)
+                    Logger.LogInformation($"[ {ModuleName} ] Map {mapName} has start timer!");
+
+                AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
             }
         });
     }
 
     public void MapChange()
     {
-        if (Utilities.GetPlayers().Count(p => p.IsBot == false) > 0) return;
+        var players = Utilities.GetPlayers().Count(p => p.IsBot == false);
 
-        if (_config.DefaultMap.IndexOf("ws:") != -1)
-            Server.ExecuteCommand($"ds_workshop_changelevel {_config.DefaultMap[3..]}");
-        else
-            Server.ExecuteCommand($"map {_config!.DefaultMap}");
+        if (_config.Debug)
+            Logger.LogInformation($"[ {ModuleName} ] Players count: {players}");
 
-        Log($"[ {ModuleName} ] Change level on map \"{_config.DefaultMap}\"");
+        if (players < 1)
+        {
+            if (_config.DefaultMap.IndexOf("ws:") != -1)
+                Server.ExecuteCommand($"ds_workshop_changelevel {_config.DefaultMap[3..]}");
+            else
+                Server.ExecuteCommand($"map {_config!.DefaultMap}");
+
+            if(_config.Debug)
+                Logger.LogInformation($"[ {ModuleName} ] Change level on map \"{_config.DefaultMap}\"");
+        }        
     }
 
     [ConsoleCommand("css_acm_reload", "Reload config AutoChangeMap")]
@@ -68,6 +80,7 @@ public class AutoMapChanger : BasePlugin
         {
             Delay = 180.0f,
             DefaultMap = "de_dust2",
+            Debug = false
         };
 
         File.WriteAllText(configPath,
@@ -89,4 +102,5 @@ public class Config
 {
     public float Delay { get; set; }
     public string DefaultMap { get; set; } = null!;
+    public bool Debug { get; set; }
 }
