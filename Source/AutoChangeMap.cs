@@ -10,7 +10,7 @@ namespace AutoMapChanger;
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.8"; 
+    public override string ModuleVersion => "1.0.8A"; 
     public override string ModuleAuthor => "skaen";
 
     private static Config _config = null!;
@@ -37,12 +37,13 @@ public class AutoMapChanger : BasePlugin
 
     public void MapChange()
     {
-        var players = Utilities.GetPlayers().Count(p => p.IsBot == false);
+        var players = Utilities.GetPlayers().Where(x => x.Connected == PlayerConnectedState.PlayerConnected && !x.IsBot);
+        var playersCount = players.Count();
 
         if (_config.Debug)
-            Logger.LogInformation($"[ {ModuleName} ] Players count: {players}");
+            Logger.LogInformation($"[ {ModuleName} ] Players count: {playersCount}");
 
-        if (players < 1)
+        if (playersCount <= 0)
         {
             if (_config.DefaultMap.IndexOf("ws:") != -1)
                 Server.ExecuteCommand($"ds_workshop_changelevel {_config.DefaultMap[3..]}");
