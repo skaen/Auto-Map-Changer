@@ -11,7 +11,8 @@ The config is created automatically in the same place where the dll is located
 ```
 {
   "Delay": 180,
-  "DefaultMap": "de_dust2"
+  "DefaultMap": "de_dust2" // 
+  "Debug": false // Output of checks to the log file
 }
 ```
 > [!NOTE]
