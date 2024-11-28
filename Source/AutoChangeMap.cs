@@ -3,56 +3,59 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Timers;
-using Microsoft.Extensions.Logging;
+using Timer = CounterStrikeSharp.API.Modules.Timers.Timer;
+
 namespace AutoMapChanger;
 
 public class AutoMapChanger : BasePlugin
 {
     public override string ModuleName => "Auto Map Changer";
-    public override string ModuleVersion => "1.0.8A"; 
+    public override string ModuleVersion => "1.0.9";
     public override string ModuleAuthor => "skaen";
 
     private static Config _config = null!;
+    private static Timer myTimer = null!;
 
     public override void Load(bool hotReload)
     {
-        Log($"{ModuleName} [{ModuleVersion}] loaded success");
+        Log($"{ModuleName} [{ModuleVersion}] Plugin has been successfully loaded");
 
         LoadConfig();
 
         RegisterListener<Listeners.OnMapStart>(mapName => {
             if (_config.Debug)
-                Logger.LogInformation($"[ {ModuleName} ] Map {mapName} has started!");
-
-            if (mapName != _config.DefaultMap && mapName != _config.DefaultMap[3..])
-            {
-                if (_config.Debug)
-                    Logger.LogInformation($"[ {ModuleName} ] Map {mapName} has start timer!");
-
-                AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
-            }
+                Log($"[ {ModuleName} ] Map {mapName} has started!");
+            StartTimer();
+        });
+        RegisterEventHandler<EventGameEnd>((@event, info) =>
+        {
+            myTimer?.Kill();
+            return HookResult.Continue;
         });
     }
 
-    public void MapChange()
+    public void StartTimer()
     {
-        var players = Utilities.GetPlayers().Where(x => x.Connected == PlayerConnectedState.PlayerConnected && !x.IsBot);
-        var playersCount = players.Count();
+        myTimer ??= AddTimer(_config.Delay, MapChange, TimerFlags.REPEAT);
+    }
+
+    private void MapChange()
+    {
+        var DefaultMap = _config.DefaultMap.IndexOf("ws:") != -1 ? _config.DefaultMap[3..] : _config.DefaultMap;
+        var Players = Utilities.GetPlayers().Where(controller => controller is { IsValid: true, IsBot: false, IsHLTV: false });
+
+        if (NativeAPI.GetMapName() == DefaultMap && !_config.ChangeMap) return;
+        if (Players.Count() > 0 && !_config.ChangeMap) return;
+
+        if (_config.DefaultMap.IndexOf("ws:") != -1)
+            Server.ExecuteCommand($"ds_workshop_changelevel {DefaultMap}");
+        else
+            Server.ExecuteCommand($"map {DefaultMap}");
 
         if (_config.Debug)
-            Logger.LogInformation($"[ {ModuleName} ] Players count: {playersCount}");
-
-        if (playersCount <= 0)
-        {
-            if (_config.DefaultMap.IndexOf("ws:") != -1)
-                Server.ExecuteCommand($"ds_workshop_changelevel {_config.DefaultMap[3..]}");
-            else
-                Server.ExecuteCommand($"map {_config!.DefaultMap}");
-
-            if(_config.Debug)
-                Logger.LogInformation($"[ {ModuleName} ] Change level on map \"{_config.DefaultMap}\"");
-        }        
+            Log($"[ {ModuleName} ] Map change to \"{DefaultMap}\"");
     }
 
     [ConsoleCommand("css_acm_reload", "Reload config AutoChangeMap")]
@@ -61,26 +64,29 @@ public class AutoMapChanger : BasePlugin
         if (controller != null) return;
 
         LoadConfig();
-        Log($"[ {ModuleName} ] loaded config success");
+        myTimer?.Kill();
+        StartTimer();
+
+        Log($"[ {ModuleName} ] Loaded config success (map: {_config.DefaultMap}, delay: {_config.Delay})");
     }
 
     private void LoadConfig()
     {
         var configPath = Path.Combine(ModuleDirectory, "autochangemap.json");
 
-        if (!File.Exists(configPath)) 
+        if (!File.Exists(configPath))
             CreateConfig(configPath);
         else
             _config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath))!;
     }
 
-    
     private void CreateConfig(string configPath)
     {
         _config = new Config
         {
             Delay = 180.0f,
             DefaultMap = "de_dust2",
+            ChangeMap = false,
             Debug = false
         };
 
@@ -101,7 +107,8 @@ public class AutoMapChanger : BasePlugin
 
 public class Config
 {
-    public float Delay { get; set; }
-    public string DefaultMap { get; set; } = null!;
+    public float Delay { get; set; } = 180.0f;
+    public string DefaultMap { get; set; } = "de_dust2";
+    public bool ChangeMap { get; set; } = false;
     public bool Debug { get; set; }
 }
