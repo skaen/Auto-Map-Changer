@@ -11,7 +11,7 @@ The config is created automatically in the same place where the dll is located
 ```
 {
   "Delay": 180,
-  "DefaultMap": "de_dust2",,
+  "DefaultMap": "de_dust2",
   "ChangeMap": false // Change the map even if there are no players
   "Debug": false // Output of checks to the log file
 }
