@@ -43,13 +43,24 @@ public class AutoMapChanger : BasePlugin
 
     private void MapChange()
     {
-        var DefaultMap = _config.DefaultMap.IndexOf("ws:") != -1 ? _config.DefaultMap[3..] : _config.DefaultMap;
+        var DefaultMap = _config.DefaultMap.StartsWith("ws:") ? _config.DefaultMap[3..] : _config.DefaultMap;
         var Players = Utilities.GetPlayers().Where(controller => controller is { IsValid: true, IsBot: false, IsHLTV: false });
 
-        if (NativeAPI.GetMapName() == DefaultMap && !_config.ChangeMap) return;
-        if (Players.Count() > 0) return;
+        if (Players.Any() && !_config.ChangeMap)
+        {
+            if (_config.Debug)
+                Log($"[ {ModuleName} ] Map change skipped: players ({Players.Count()}) are online and ChangeMap is false");
+            return;
+        }
 
-        if (_config.DefaultMap.IndexOf("ws:") != -1)
+        if (NativeAPI.GetMapName() == DefaultMap && !_config.ChangeMap)
+        {
+            if (_config.Debug)
+                Log($"[ {ModuleName} ] Map change skipped: current map is already \"{DefaultMap}\" and ChangeMap is false");
+            return;
+        }
+
+        if (_config.DefaultMap.StartsWith("ws:"))
             Server.ExecuteCommand($"ds_workshop_changelevel {DefaultMap}");
         else
             Server.ExecuteCommand($"map {DefaultMap}");
