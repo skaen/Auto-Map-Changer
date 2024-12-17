@@ -47,7 +47,7 @@ public class AutoMapChanger : BasePlugin
         var Players = Utilities.GetPlayers().Where(controller => controller is { IsValid: true, IsBot: false, IsHLTV: false });
 
         if (NativeAPI.GetMapName() == DefaultMap && !_config.ChangeMap) return;
-        if (Players.Count() > 0 && !_config.ChangeMap) return;
+        if (Players.Count() > 0) return;
 
         if (_config.DefaultMap.IndexOf("ws:") != -1)
             Server.ExecuteCommand($"ds_workshop_changelevel {DefaultMap}");
